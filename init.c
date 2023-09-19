@@ -6,7 +6,7 @@
 /*   By: atuliara <atuliara@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/04/13 15:33:00 by atuliara          #+#    #+#             */
-/*   Updated: 2023/04/26 14:39:29 by atuliara         ###   ########.fr       */
+/*   Updated: 2023/07/14 14:06:39 by atuliara         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 void	init_philosophers(t_rules *rules)
 {
-	int i;
+	int	i;
 
 	i = rules->nb_philo;
 	while (--i >= 0)
@@ -25,6 +25,7 @@ void	init_philosophers(t_rules *rules)
 		rules->philosophers[i].right_fork_id = (i + 1) % rules->nb_philo;
 		rules->philosophers[i].t_last_meal = 0;
 		rules->philosophers[i].rules = rules;
+		rules->philosophers[i].dead = 0;
 	}
 }
 
@@ -34,44 +35,62 @@ void	init_philosophers(t_rules *rules)
 
 int	init_mutex(t_rules *rules)
 {
-	int i;
+	int	i;
 
 	i = rules->nb_philo;
 	while (--i >= 0)
 	{
-		if (pthread_mutex_init(&(rules->philosophers->forks[i]), NULL))
+		if (pthread_mutex_init(&(rules->forks[i]), NULL))
+			return (1);
+		if (pthread_mutex_init(&(rules->death[i]), NULL))
 			return (1);
 	}
+	if (pthread_mutex_init(&(rules->times_eaten_m), NULL))
+		return (1);
 	if (pthread_mutex_init(&(rules->print), NULL))
 		return (1);
 	if (pthread_mutex_init(&(rules->eating), NULL))
-		return (1);
-	if (pthread_mutex_init(&(rules->death), NULL))
 		return (1);
 	if (pthread_mutex_init(&(rules->satisfied), NULL))
 		return (1);
 	return (0);
 }
 
-/*
-** Allocate for the philo struct and fork mutexes.
-*/
-
-int allocate(t_rules *rules)
+int	ft_isvalid(char *str)
 {
-	rules->philosophers = malloc(sizeof(t_philosopher) * rules->nb_philo);
-	rules->philosophers->forks = malloc(sizeof(pthread_mutex_t) * rules->nb_philo);
-	if (rules->philosophers == NULL || rules->philosophers->forks == NULL)
-		return(free_all(rules));
+	int	i;
+
+	i = 0;
+	while (str[i])
+	{
+		if (str[i] < '0' || str[i] > '9')
+			return (1);
+		i++;
+	}
+	return (0);
+}
+
+int	check_args(char **argv)
+{
+	if (ft_isvalid(argv[1]) || ft_isvalid(argv[2])
+		|| ft_isvalid(argv[3]) || ft_isvalid(argv[4]))
+		return (1);
+	if (argv[5])
+	{
+		if (ft_isvalid(argv[5]))
+			return (1);
+	}
 	return (0);
 }
 
 /*
-** Initialize the rules and philosophers struct. Call mutex and philo init. 
+** Initialize the rules struct. Call mutex and philo init. Return 1 on error.
 */
 
 int	init_all(t_rules *rules, char **argv)
 {
+	if (check_args(argv) == 1)
+		return (1);
 	rules->nb_philo = ft_atoi(argv[1]);
 	rules->time_death = ft_atoi(argv[2]);
 	rules->time_eat = ft_atoi(argv[3]);
@@ -85,11 +104,8 @@ int	init_all(t_rules *rules, char **argv)
 	else
 		rules->nb_eat = -1;
 	rules->all_ate = 0;
-	rules->dead = 0;
-	if (allocate(rules))
-		return(1);
-	if (rules->nb_philo < 1 || rules->time_death < 0 || rules->time_eat < 0
-		|| rules->time_sleep < 0 || rules->nb_philo > 200)
+	if (rules->nb_philo < 1 || rules->time_death <= 0 || rules->time_eat <= 0
+		|| rules->time_sleep <= 0 || rules->nb_philo > 200)
 		return (1);
 	if (init_mutex(rules))
 		return (1);

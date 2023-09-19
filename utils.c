@@ -6,7 +6,7 @@
 /*   By: atuliara <atuliara@student.hive.fi>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2021/02/10 18:59:07 by gsmets            #+#    #+#             */
-/*   Updated: 2023/04/26 14:40:34 by atuliara         ###   ########.fr       */
+/*   Updated: 2023/07/13 16:45:43 by atuliara         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -39,7 +39,8 @@ int	ft_atoi(const char *str)
 }
 
 /*
-** Combines the seconds and microseconds into a single value representing the total time in milliseconds.
+** Combines the seconds and microseconds into a
+** single value representing the total time in milliseconds.
 */
 
 long long	timestamp(void)
@@ -50,12 +51,12 @@ long long	timestamp(void)
 	return ((t.tv_sec * 1000) + (t.tv_usec / 1000));
 }
 
-void		sleep_until(long long time, t_rules *rules)
+void	sleep_until(long long time, t_rules *rules, t_philosopher *philo)
 {
-	long long past;
+	long long	past;
 
 	past = timestamp();
-	while ((is_dead(rules) == 0))
+	while ((is_dead(rules, philo->id) == 0))
 	{
 		if ((timestamp() - past) >= time)
 			break ;
@@ -63,10 +64,10 @@ void		sleep_until(long long time, t_rules *rules)
 	}
 }
 
-void		philo_print(t_rules *rules, int id, char *string)
+void	philo_print(t_rules *rules, int id, char *string)
 {
 	pthread_mutex_lock(&(rules->print));
-	if ((is_dead(rules) == 0))
+	if ((is_dead(rules, id) == 0))
 	{
 		printf("%lli ", timestamp() - rules->start_time);
 		printf("%i ", id + 1);
@@ -85,17 +86,5 @@ int	is_satisfied(t_rules *rules)
 		return (1);
 	}
 	pthread_mutex_unlock(&(rules->satisfied));
-	return (0);
-}
-
-int	is_dead(t_rules *rules)
-{
-	pthread_mutex_lock(&(rules->death));
-	if (rules->dead == 1)
-	{
-		pthread_mutex_unlock(&(rules->death));
-		return (1);
-	}
-	pthread_mutex_unlock(&(rules->death));
 	return (0);
 }
